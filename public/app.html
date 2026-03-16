@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hunter.io 企业信息查询平台</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    /* 顶部账户信息栏 */
+    .account-bar {
+      background: white;
+      border-radius: 12px;
+      padding: 16px 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .account-info { display: flex; gap: 32px; align-items: center; }
+    .account-item { display: flex; flex-direction: column; }
+    .account-label { font-size: 12px; color: #666; margin-bottom: 4px; }
+    .account-value { font-size: 16px; font-weight: 600; color: #333; }
+    .account-loading { color: #999; font-size: 14px; }
+    .refresh-btn {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.3s;
+    }
+    .refresh-btn:hover { background: #5568d3; transform: translateY(-1px); }
+
+    /* 主容器 */
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+      overflow: hidden;
+    }
+
+    /* Tab导航 */
+    .tabs {
+      display: flex;
+      background: #f8f9fa;
+      border-bottom: 2px solid #e9ecef;
+    }
+    .tab {
+      flex: 1;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 500;
+      color: #666;
+      transition: all 0.3s;
+      border-bottom: 3px solid transparent;
+    }
+    .tab:hover { background: #e9ecef; }
+    .tab.active {
+      color: #667eea;
+      background: white;
+      border-bottom-color: #667eea;
+    }
+
+    /* Tab内容区 */
+    .tab-content {
+      display: none;
+      padding: 32px;
+      min-height: 600px;
+    }
+    .tab-content.active { display: block; }
+
+    /* 搜索框 */
+    .search-box {
+      margin-bottom: 32px;
+    }
+    .search-input {
+      width: 100%;
+      padding: 16px 20px;
+      font-size: 16px;
+      border: 2px solid #e9ecef;
+      border-radius: 8px;
+      transition: all 0.3s;
+    }
+    .search-input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    .search-btn {
+      width: 100%;
+      margin-top: 12px;
+      padding: 14px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .search-btn:hover { background: #5568d3; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3); }
+    .search-btn:disabled { background: #ccc; cursor: not-allowed; transform: none; }
+
+    /* 公司列表 */
+    .company-list {
+      display: grid;
+      gap: 16px;
+    }
+    .company-card {
+      border: 2px solid #e9ecef;
+      border-radius: 12px;
+      padding: 20px;
+      transition: all 0.3s;
+      cursor: pointer;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+    }
+    .company-card:hover {
+      border-color: #667eea;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+      transform: translateY(-2px);
+    }
+    .company-main { display: flex; gap: 20px; align-items: center; }
+    .company-name {
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 8px;
+    }
+    .company-domain {
+      color: #667eea;
+      text-decoration: none;
+      font-size: 14px;
+      margin-bottom: 4px;
+      display: inline-block;
+    }
+    .company-domain:hover { text-decoration: underline; }
+    .company-meta {
+      font-size: 13px;
+      color: #666;
+      display: flex;
+      gap: 16px;
+      margin-top: 8px;
+    }
+    .company-actions {
+      display: flex;
+      gap: 12px;
+    }
+    .badge {
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .badge-primary { background: #e7f0ff; color: #667eea; }
+    .badge-success { background: #d4edda; color: #28a745; }
+    .badge-warning { background: #fff3cd; color: #856404; }
+
+    /* 公司详情页 */
+    .detail-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 32px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid #e9ecef;
+    }
+    .back-btn {
+      background: #6c757d;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .back-btn:hover { background: #5a6268; }
+
+    .detail-section {
+      background: #f8f9fa;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .section-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 16px;
+    }
+    .info-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .info-label {
+      font-size: 12px;
+      color: #666;
+      font-weight: 500;
+    }
+    .info-value {
+      font-size: 15px;
+      color: #333;
+      font-weight: 500;
+    }
+
+    /* 联系人表格 */
+    .contacts-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+    }
+    .contacts-table th {
+      background: #667eea;
+      color: white;
+      padding: 12px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 14px;
+    }
+    .contacts-table td {
+      padding: 12px;
+      border-bottom: 1px solid #e9ecef;
+      font-size: 14px;
+    }
+    .contacts-table tr:hover { background: #f8f9fa; }
+    .verify-btn {
+      background: #28a745;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .verify-btn:hover { background: #218838; }
+    .verify-btn:disabled { background: #ccc; cursor: not-allowed; }
+
+    /* Email Finder表单 */
+    .finder-form {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    .form-label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 8px;
+    }
+    .form-input {
+      width: 100%;
+      padding: 12px 16px;
+      font-size: 14px;
+      border: 2px solid #e9ecef;
+      border-radius: 6px;
+      transition: all 0.3s;
+    }
+    .form-input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    .form-hint {
+      font-size: 12px;
+      color: #666;
+      margin-top: 4px;
+    }
+
+    /* 结果卡片 */
+    .result-card {
+      background: #f8f9fa;
+      border-radius: 12px;
+      padding: 24px;
+      margin-top: 24px;
+    }
+
+    /* 加载动画 */
+    .spinner {
+      display: none;
+      width: 40px;
+      height: 40px;
+      margin: 40px auto;
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    .spinner.show { display: block; }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* 空状态 */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #999;
+      font-size: 16px;
+    }
+
+    /* 错误提示 */
+    .error-box {
+      background: #f8d7da;
+      color: #721c24;
+      padding: 12px 16px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      display: none;
+    }
+    .error-box.show { display: block; }
+
+    /* 验证状态标签 */
+    .status-valid { background: #d4edda; color: #155724; }
+    .status-invalid { background: #f8d7da; color: #721c24; }
+    .status-unknown { background: #fff3cd; color: #856404; }
+  </style>
+</head>
+<body>
+  <!-- 顶部账户信息栏 -->
+  <div class="account-bar">
+    <div class="account-info" id="accountInfo">
+      <div class="account-loading">正在加载账户信息...</div>
+    </div>
+    <button class="refresh-btn" onclick="loadAccountInfo()">刷新</button>
+  </div>
+
+  <!-- 主容器 -->
+  <div class="container">
+    <!-- Tab导航 -->
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('discover')">🔍 公司发现</div>
+      <div class="tab" onclick="switchTab('detail')" id="detailTab" style="display:none;">📊 公司详情</div>
+      <div class="tab" onclick="switchTab('finder')">✉️ 邮箱查找</div>
+    </div>
+
+    <!-- Tab 1: 公司发现 -->
+    <div class="tab-content active" id="tab-discover">
+      <div class="search-box">
+        <input type="text" class="search-input" id="discoverQuery" 
+               placeholder="输入自然语言查询，例如：SaaS companies in France with 50-200 employees"
+               onkeydown="if(event.key==='Enter') searchCompanies()">
+        <button class="search-btn" id="discoverBtn" onclick="searchCompanies()">搜索公司</button>
+      </div>
+      <div class="error-box" id="discoverError"></div>
+      <div class="spinner" id="discoverSpinner"></div>
+      <div id="companyList"></div>
+    </div>
+
+    <!-- Tab 2: 公司详情 -->
+    <div class="tab-content" id="tab-detail">
+      <div class="detail-header">
+        <h2 id="detailCompanyName">公司详情</h2>
+        <button class="back-btn" onclick="switchTab('discover')">← 返回列表</button>
+      </div>
+
+      <!-- 公司信息区 -->
+      <div class="detail-section">
+        <div class="section-title">公司信息</div>
+        <div class="spinner" id="companyInfoSpinner"></div>
+        <div id="companyInfoContent"></div>
+      </div>
+
+      <!-- 联系人区 -->
+      <div class="detail-section">
+        <div class="section-title">
+          <span>联系人列表</span>
+          <button class="search-btn" id="loadContactsBtn" onclick="loadContacts()" 
+                  style="width:auto;margin:0;padding:10px 20px;">加载联系人</button>
+        </div>
+        <div class="spinner" id="contactsSpinner"></div>
+        <div id="contactsContent"></div>
+      </div>
+    </div>
+
+    <!-- Tab 3: 邮箱查找 -->
+    <div class="tab-content" id="tab-finder">
+      <div class="finder-form">
+        <h2 style="text-align:center;margin-bottom:32px;color:#333;">邮箱查找工具</h2>
+        <p style="text-align:center;color:#666;margin-bottom:32px;">
+          支持通过公司名、域名或 LinkedIn 查找邮箱
+        </p>
+
+        <div class="form-group">
+          <label class="form-label">LinkedIn 地址（优先）</label>
+          <input type="text" class="form-input" id="finderLinkedin" 
+                 placeholder="例如：https://linkedin.com/in/johndoe 或 johndoe">
+          <div class="form-hint">填写此项可不填姓名</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">公司域名</label>
+          <input type="text" class="form-input" id="finderDomain" 
+                 placeholder="例如：google.com">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">公司名称</label>
+          <input type="text" class="form-input" id="finderCompany" 
+                 placeholder="例如：Google">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">First Name</label>
+          <input type="text" class="form-input" id="finderFirst" 
+                 placeholder="例如：John">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Last Name</label>
+          <input type="text" class="form-input" id="finderLast" 
+                 placeholder="例如：Doe">
+        </div>
+
+        <button class="search-btn" id="finderBtn" onclick="findEmail()">查找邮箱</button>
+
+        <div class="error-box" id="finderError"></div>
+        <div class="spinner" id="finderSpinner"></div>
+        <div id="finderResult"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 全局状态
+    let currentCompany = null;
+    let currentDomain = null;
+    let contactsData = [];
+
+    // ==================== 工具函数 ====================
+    function showError(id, msg) {
+      const el = document.getElementById(id);
+      el.textContent = msg;
+      el.classList.add('show');
+      setTimeout(() => el.classList.remove('show'), 5000);
+    }
+
+    function showSpinner(id) {
+      document.getElementById(id).classList.add('show');
+    }
+
+    function hideSpinner(id) {
+      document.getElementById(id).classList.remove('show');
+    }
+
+    function esc(str) {
+      const div = document.createElement('div');
+      div.textContent = str || '';
+      return div.innerHTML;
+    }
+
+    // ==================== Tab切换 ====================
+    function switchTab(name) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      
+      document.querySelector(`.tab[onclick*="${name}"]`).classList.add('active');
+      document.getElementById(`tab-${name}`).classList.add('active');
+    }
+
+    // ==================== 功能1: 账户信息 ====================
+    async function loadAccountInfo() {
+      const container = document.getElementById('accountInfo');
+      container.innerHTML = '<div class="account-loading">正在加载...</div>';
+      
+      try {
+        const res = await fetch('/hunter-account');
+        const data = await res.json();
+        
+        if (data.account) {
+          const a = data.account;
+          const r = a.requests;
+          container.innerHTML = `
+            <div class="account-item">
+              <div class="account-label">账户</div>
+              <div class="account-value">${esc(a.first_name)} ${esc(a.last_name)}</div>
+            </div>
+            <div class="account-item">
+              <div class="account-label">套餐</div>
+              <div class="account-value">${esc(a.plan_name)}</div>
+            </div>
+            <div class="account-item">
+              <div class="account-label">搜索额度</div>
+              <div class="account-value">${r.searches_used} / ${r.searches_available}</div>
+            </div>
+            <div class="account-item">
+              <div class="account-label">验证额度</div>
+              <div class="account-value">${r.verifications_used} / ${r.verifications_available}</div>
+            </div>
+            <div class="account-item">
+              <div class="account-label">重置日期</div>
+              <div class="account-value">${esc(a.reset_date)}</div>
+            </div>
+          `;
+        }
+      } catch (err) {
+        container.innerHTML = '<div class="account-loading" style="color:#dc3545;">加载失败</div>';
+      }
+    }
+
+    // ==================== 功能2: 公司搜索 ====================
+    async function searchCompanies() {
+      const query = document.getElementById('discoverQuery').value.trim();
+      if (!query) {
+        showError('discoverError', '请输入查询条件');
+        return;
+      }
+
+      const btn = document.getElementById('discoverBtn');
+      btn.disabled = true;
+      showSpinner('discoverSpinner');
+      document.getElementById('companyList').innerHTML = '';
+
+      try {
+        const res = await fetch('/hunter-discover', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query })
+        });
+
+        if (!res.ok) throw new Error('查询失败');
+        
+        const data = await res.json();
+        
+        if (data.companies && data.companies.length > 0) {
+          // 按邮箱数量倒序排列
+          const sorted = data.companies.sort((a, b) => {
+            const aCount = parseInt(a.employees) || 0;
+            const bCount = parseInt(b.employees) || 0;
+            return bCount - aCount;
+          });
+
+          const html = sorted.map(c => `
+            <div class="company-card" onclick="viewCompanyDetail('${esc(c.domain)}', '${esc(c.name)}')">
+              <div class="company-main">
+                <div>
+                  <div class="company-name">${esc(c.name)}</div>
+                  <a href="http://${esc(c.domain)}" target="_blank" class="company-domain" 
+                     onclick="event.stopPropagation()">🌐 ${esc(c.domain)}</a>
+                  <div class="company-meta">
+                    ${c.industry ? `<span>📊 ${esc(c.industry)}</span>` : ''}
+                    ${c.location ? `<span>📍 ${esc(c.location)}</span>` : ''}
+                  </div>
+                </div>
+              </div>
+              <div class="company-actions">
+                <span class="badge badge-primary">📧 ${esc(c.employees)} 个邮箱</span>
+              </div>
+            </div>
+          `).join('');
+
+          document.getElementById('companyList').innerHTML = html;
+        } else {
+          document.getElementById('companyList').innerHTML = 
+            '<div class="empty-state">未找到符合条件的公司</div>';
+        }
+      } catch (err) {
+        showError('discoverError', err.message);
+      } finally {
+        btn.disabled = false;
+        hideSpinner('discoverSpinner');
+      }
+    }
+
+    // ==================== 功能2: 公司详情 ====================
+    async function viewCompanyDetail(domain, name) {
+      currentDomain = domain;
+      currentCompany = name;
+      contactsData = [];
+
+      document.getElementById('detailCompanyName').textContent = name;
+      document.getElementById('detailTab').style.display = 'block';
+      switchTab('detail');
+
+      // 清空联系人区域
+      document.getElementById('contactsContent').innerHTML = '';
+      document.getElementById('loadContactsBtn').disabled = false;
+
+      // 加载公司信息
+      showSpinner('companyInfoSpinner');
+      document.getElementById('companyInfoContent').innerHTML = '';
+
+      try {
+        const res = await fetch('/hunter-company-enrichment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ domain })
+        });
+
+        const data = await res.json();
+        
+        if (data.company) {
+          const c = data.company;
+          const techHtml = c.tech && c.tech.length > 0
+            ? c.tech.map(t => `<span class="badge badge-primary" style="margin:2px">${esc(t)}</span>`).join(' ')
+            : '-';
+
+          document.getElementById('companyInfoContent').innerHTML = `
+            <div class="info-grid">
+              <div class="info-item">
+                <div class="info-label">公司名称</div>
+                <div class="info-value">${esc(c.name)}</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">域名</div>
+                <div class="info-value"><a href="http://${esc(c.domain)}" target="_blank">${esc(c.domain)}</a></div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">行业</div>
+                <div class="info-value">${esc(c.industry || '-')}</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">员工规模</div>
+                <div class="info-value">${esc(c.employees || '-')}</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">成立年份</div>
+                <div class="info-value">${c.founded_year || '-'}</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">位置</div>
+                <div class="info-value">${esc(c.location || '-')}</div>
+              </div>
+              <div class="info-item" style="grid-column:1/-1">
+                <div class="info-label">简介</div>
+                <div class="info-value">${esc(c.description || '-')}</div>
+              </div>
+              <div class="info-item" style="grid-column:1/-1">
+                <div class="info-label">技术栈</div>
+                <div class="info-value">${techHtml}</div>
+              </div>
+            </div>
+          `;
+        }
+      } catch (err) {
+        document.getElementById('companyInfoContent').innerHTML = 
+          `<div class="empty-state">加载失败: ${esc(err.message)}</div>`;
+      } finally {
+        hideSpinner('companyInfoSpinner');
+      }
+    }
+
+    // ==================== 功能2: 加载联系人 ====================
+    async function loadContacts() {
+      if (!currentDomain) return;
+
+      const btn = document.getElementById('loadContactsBtn');
+      btn.disabled = true;
+      showSpinner('contactsSpinner');
+      document.getElementById('contactsContent').innerHTML = '';
+
+      try {
+        const res = await fetch('/hunter-domain-search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ domain: currentDomain })
+        });
+
+        const data = await res.json();
+        
+        if (data.emails && data.emails.length > 0) {
+          contactsData = data.emails;
+          renderContactsTable();
+        } else {
+          document.getElementById('contactsContent').innerHTML = 
+            '<div class="empty-state">未找到联系人信息</div>';
+        }
+      } catch (err) {
+        document.getElementById('contactsContent').innerHTML = 
+          `<div class="empty-state">加载失败: ${esc(err.message)}</div>`;
+      } finally {
+        hideSpinner('contactsSpinner');
+      }
+    }
+
+    function renderContactsTable() {
+      const rows = contactsData.map((c, idx) => {
+        const conf = parseInt(c.confidence) || 0;
+        const confClass = conf >= 80 ? 'badge-success' : conf >= 50 ? 'badge-warning' : 'badge-primary';
+        const verifyStatus = c.verifyStatus || '';
+        
+        return `
+          <tr>
+            <td>${esc(c.first_name)} ${esc(c.last_name)}</td>
+            <td>${c.value ? `<a href="mailto:${esc(c.value)}">${esc(c.value)}</a>` : '-'}</td>
+            <td>${esc(c.position || '-')}</td>
+            <td><span class="badge ${confClass}">${conf}%</span></td>
+            <td>
+              ${verifyStatus ? `<span class="badge status-${verifyStatus.status}">${verifyStatus.label}</span>` : 
+                `<button class="verify-btn" onclick="verifyEmail(${idx}, '${esc(c.value)}')">验证</button>`}
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      document.getElementById('contactsContent').innerHTML = `
+        <table class="contacts-table">
+          <thead>
+            <tr>
+              <th>姓名</th>
+              <th>邮箱</th>
+              <th>职位</th>
+              <th>置信度</th>
+              <th>验证状态</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      `;
+    }
+
+    // ==================== 功能2: 邮箱验证 ====================
+    async function verifyEmail(idx, email) {
+      if (!email) return;
+
+      try {
+        const res = await fetch('/hunter-email-verifier', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+
+        const data = await res.json();
+        
+        const statusMap = {
+          valid: { status: 'valid', label: '✓ 有效' },
+          invalid: { status: 'invalid', label: '✗ 无效' },
+          accept_all: { status: 'unknown', label: '? Accept All' },
+          unknown: { status: 'unknown', label: '? 未知' }
+        };
+
+        contactsData[idx].verifyStatus = statusMap[data.status] || { status: 'unknown', label: data.status };
+        renderContactsTable();
+      } catch (err) {
+        alert('验证失败: ' + err.message);
+      }
+    }
+
+    // ==================== 功能3: 邮箱查找 ====================
+    async function findEmail() {
+      const linkedin = document.getElementById('finderLinkedin').value.trim();
+      const domain = document.getElementById('finderDomain').value.trim();
+      const company = document.getElementById('finderCompany').value.trim();
+      const firstName = document.getElementById('finderFirst').value.trim();
+      const lastName = document.getElementById('finderLast').value.trim();
+
+      if (!linkedin && !domain && !company) {
+        showError('finderError', '请至少填写 LinkedIn、域名或公司名');
+        return;
+      }
+
+      if (!linkedin && !firstName && !lastName) {
+        showError('finderError', '非 LinkedIn 查找时，请填写姓名');
+        return;
+      }
+
+      const btn = document.getElementById('finderBtn');
+      btn.disabled = true;
+      showSpinner('finderSpinner');
+      document.getElementById('finderResult').innerHTML = '';
+
+      try {
+        const body = {};
+        if (linkedin) body.linkedin_url = linkedin;
+        if (domain) body.domain = domain;
+        if (company) body.company = company;
+        if (firstName) body.first_name = firstName;
+        if (lastName) body.last_name = lastName;
+
+        const res = await fetch('/hunter-email-finder', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+
+        const data = await res.json();
+        
+        if (data.email) {
+          const conf = parseInt(data.confidence) || 0;
+          const confClass = conf >= 80 ? 'badge-success' : conf >= 50 ? 'badge-warning' : 'badge-primary';
+          
+          document.getElementById('finderResult').innerHTML = `
+            <div class="result-card">
+              <h3 style="margin-bottom:20px;color:#333;">查找结果</h3>
+              <div class="info-grid">
+                <div class="info-item">
+                  <div class="info-label">姓名</div>
+                  <div class="info-value">${esc(data.first_name)} ${esc(data.last_name)}</div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">邮箱</div>
+                  <div class="info-value">
+                    <a href="mailto:${esc(data.email)}">${esc(data.email)}</a>
+                    <button class="verify-btn" style="margin-left:12px" 
+                            onclick="verifyFoundEmail('${esc(data.email)}')">验证邮箱</button>
+                  </div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">置信度</div>
+                  <div class="info-value"><span class="badge ${confClass}">${conf}%</span></div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">职位</div>
+                  <div class="info-value">${esc(data.position || '-')}</div>
+                </div>
+                ${data.domain ? `
+                <div class="info-item">
+                  <div class="info-label">公司域名</div>
+                  <div class="info-value"><a href="http://${esc(data.domain)}" target="_blank">${esc(data.domain)}</a></div>
+                </div>` : ''}
+                ${data.company ? `
+                <div class="info-item">
+                  <div class="info-label">公司</div>
+                  <div class="info-value">${esc(data.company)}</div>
+                </div>` : ''}
+              </div>
+              <div id="verifyResultArea" style="margin-top:20px;"></div>
+            </div>
+          `;
+        } else {
+          document.getElementById('finderResult').innerHTML = 
+            '<div class="empty-state">未找到该联系人的邮箱</div>';
+        }
+      } catch (err) {
+        showError('finderError', err.message);
+      } finally {
+        btn.disabled = false;
+        hideSpinner('finderSpinner');
+      }
+    }
+
+    async function verifyFoundEmail(email) {
+      const area = document.getElementById('verifyResultArea');
+      area.innerHTML = '<div style="text-align:center;color:#999;">正在验证...</div>';
+
+      try {
+        const res = await fetch('/hunter-email-verifier', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+
+        const data = await res.json();
+        
+        const statusMap = {
+          valid: ['status-valid', '✓ 有效'],
+          invalid: ['status-invalid', '✗ 无效'],
+          accept_all: ['status-unknown', '? Accept All'],
+          unknown: ['status-unknown', '? 未知']
+        };
+        const [statusClass, statusLabel] = statusMap[data.status] || ['status-unknown', data.status];
+
+        area.innerHTML = `
+          <div style="background:white;padding:16px;border-radius:8px;border:2px solid #e9ecef;">
+            <strong>验证结果：</strong>
+            <span class="badge ${statusClass}" style="margin-left:8px;">${statusLabel}</span>
+            <span style="margin-left:16px;color:#666;">评分: ${data.score || '-'}</span>
+          </div>
+        `;
+      } catch (err) {
+        area.innerHTML = `<div style="color:#dc3545;">验证失败: ${esc(err.message)}</div>`;
+      }
+    }
+
+    // ==================== 页面加载 ====================
+    window.onload = function() {
+      loadAccountInfo();
+    };
+  </script>
+</body>
+</html>

@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>API Enrich Demo</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: #f0f2f5;
+      color: #1a1a1a;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+    .header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin-bottom: 8px;
+    }
+    .header p {
+      color: #666;
+      font-size: 15px;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 24px;
+      background: #fff;
+      border-radius: 12px;
+      padding: 6px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      background: transparent;
+      color: #666;
+      transition: all 0.2s;
+    }
+    .tab-btn:hover { background: #f5f5f5; }
+    .tab-btn.active {
+      background: #4f46e5;
+      color: #fff;
+    }
+    .tab-btn.active-hunter {
+      background: #ea580c;
+      color: #fff;
+    }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* Card */
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04);
+      padding: 32px;
+      margin-bottom: 24px;
+    }
+    .card h2 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #eee;
+      color: #333;
+    }
+
+    /* Form */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+    .form-group label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #555;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .form-group input {
+      padding: 10px 14px;
+      border: 1.5px solid #d9d9d9;
+      border-radius: 8px;
+      font-size: 15px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+    }
+    .form-group input:focus {
+      border-color: #4f46e5;
+      box-shadow: 0 0 0 3px rgba(79,70,229,0.1);
+    }
+    .form-group input::placeholder {
+      color: #bbb;
+    }
+
+    .btn-row {
+      margin-top: 20px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .btn {
+      padding: 10px 28px;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: #4f46e5;
+      color: #fff;
+    }
+    .btn-primary:hover { background: #4338ca; }
+    .btn-primary:disabled {
+      background: #a5b4fc;
+      cursor: not-allowed;
+    }
+    .btn-hunter {
+      background: #ea580c;
+      color: #fff;
+    }
+    .btn-hunter:hover { background: #c2410c; }
+    .btn-hunter:disabled {
+      background: #fdba74;
+      cursor: not-allowed;
+    }
+
+    /* Loading */
+    .spinner {
+      display: none;
+      width: 20px;
+      height: 20px;
+      border: 2.5px solid #d9d9d9;
+      border-top-color: #4f46e5;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+    .spinner.show { display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .status-text {
+      font-size: 14px;
+      color: #888;
+      margin-left: 4px;
+    }
+
+    /* Results */
+    .results-area { display: none; }
+    .results-area.show { display: block; }
+
+    /* Company Info */
+    .company-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+    .info-item {
+      padding: 14px 16px;
+      background: #f7f7fa;
+      border-radius: 8px;
+    }
+    .info-item .label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .info-item .value {
+      font-size: 15px;
+      color: #1a1a1a;
+      word-break: break-all;
+    }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      text-align: left;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #888;
+      padding: 10px 14px;
+      border-bottom: 2px solid #eee;
+    }
+    tbody td {
+      padding: 12px 14px;
+      font-size: 14px;
+      border-bottom: 1px solid #f0f0f0;
+      color: #333;
+    }
+    tbody tr:hover { background: #f9f9fb; }
+    tbody td a { color: #4f46e5; text-decoration: none; }
+    tbody td a:hover { text-decoration: underline; }
+
+    .empty-state {
+      text-align: center;
+      padding: 32px;
+      color: #999;
+      font-size: 14px;
+    }
+
+    /* Error */
+    .error-box {
+      display: none;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #b91c1c;
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-bottom: 24px;
+      font-size: 14px;
+    }
+    .error-box.show { display: block; }
+
+    /* Message */
+    .message-box {
+      background: #fffbeb;
+      border: 1px solid #fed7aa;
+      color: #92400e;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+
+    /* Confidence badge */
+    .badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .badge-high { background: #dcfce7; color: #166534; }
+    .badge-mid  { background: #fef9c3; color: #854d0e; }
+    .badge-low  { background: #fee2e2; color: #991b1b; }
+
+    @media (max-width: 600px) {
+      .form-grid, .company-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <h1>API Enrich Demo</h1>
+      <p>通过 Apollo.io / Hunter.io 自动补全公司和联系人信息</p>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('apollo')">Apollo — 公司 & 联系人</button>
+      <button class="tab-btn" onclick="switchTab('hunter')">Hunter — 域名邮箱搜索</button>
+    </div>
+
+    <!-- ==================== Apollo Panel ==================== -->
+    <div id="panel-apollo" class="tab-panel active">
+      <div class="card">
+        <h2>Apollo 查询</h2>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>公司域名（优先）</label>
+            <input type="text" id="ap-domain" placeholder="例如：apollo.io" />
+          </div>
+          <div class="form-group">
+            <label>公司名称</label>
+            <input type="text" id="ap-companyName" placeholder="例如：Apollo.io" />
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="ap-btn" onclick="apolloSearch()">查询</button>
+          <div class="spinner" id="ap-spinner"></div>
+          <span class="status-text" id="ap-status"></span>
+        </div>
+      </div>
+
+      <div class="error-box" id="ap-error"></div>
+
+      <div class="results-area" id="ap-results">
+        <div class="card">
+          <h2>公司信息</h2>
+          <div class="company-grid" id="ap-companyGrid"></div>
+        </div>
+        <div class="card">
+          <h2>潜在联系人</h2>
+          <div id="ap-contactsArea"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== Hunter Panel ==================== -->
+    <div id="panel-hunter" class="tab-panel">
+
+      <!-- 1. 账户信息 -->
+      <div class="card">
+        <h2>1. 账户信息 <span style="font-size:12px;color:#888;font-weight:400">（免费）</span></h2>
+        <div class="btn-row" style="margin-top:0">
+          <button class="btn btn-hunter" id="ac-btn" onclick="accountInfoSearch()">查看账户额度</button>
+          <div class="spinner" id="ac-spinner"></div>
+          <span class="status-text" id="ac-status"></span>
+        </div>
+      </div>
+      <div class="error-box" id="ac-error"></div>
+      <div class="results-area" id="ac-results">
+        <div class="card"><h2>账户信息</h2><div id="ac-resultArea"></div></div>
+      </div>
+
+      <!-- 2. 公司发现 -->
+      <div class="card">
+        <h2>2. 公司发现 Discover <span style="font-size:12px;color:#888;font-weight:400">（免费）</span></h2>
+        <div class="form-grid">
+          <div class="form-group" style="grid-column:1/-1">
+            <label>自然语言查询</label>
+            <input type="text" id="dc-query" placeholder="例如：SaaS companies in France with 50-200 employees" />
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-hunter" id="dc-btn" onclick="discoverSearch()">搜索公司</button>
+          <div class="spinner" id="dc-spinner"></div>
+          <span class="status-text" id="dc-status"></span>
+        </div>
+      </div>
+      <div class="error-box" id="dc-error"></div>
+      <div class="results-area" id="dc-results">
+        <div class="card"><h2>公司列表</h2><div id="dc-resultArea"></div></div>
+      </div>
+
+      <!-- 3. 邮箱数量 -->
+      <div class="card">
+        <h2>3. 邮箱数量查询 <span style="font-size:12px;color:#888;font-weight:400">（免费）</span></h2>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>公司域名</label>
+            <input type="text" id="ec-domain" placeholder="例如：google.com" />
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-hunter" id="ec-btn" onclick="emailCountSearch()">查询数量</button>
+          <div class="spinner" id="ec-spinner"></div>
+          <span class="status-text" id="ec-status"></span>
+        </div>
+      </div>
+      <div class="error-box" id="ec-error"></div>
+      <div class="results-area" id="ec-results">
+        <div class="card"><h2>邮箱数量统计</h2><div id="ec-resultArea"></div></div>
+      </div>
+
+      <!-- 4. 域名邮箱搜索 -->
+      <div class="card">
+        <h2>4. 域名邮箱搜索 Domain Search</h2>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>公司域名</label>
+            <input type="text" id="ht-domain" placeholder="例如：google.com" />
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-hunter" id="ht-btn" onclick="hunterSearch()">搜索邮箱</button>
+          <div class="spinner" id="ht-spinner"></div>
+          <span class="status-text" id="ht-status"></span>
+        </div>
+      </div>
+      <div class="error-box" id="ht-error"></div>
+      <div class="results-area" id="ht-results">
+        <div class="card"><h2>邮箱列表</h2><div id="ht-emailsArea"></div></div>
+      </div>
+
+      <!-- 5. 邮箱查找 -->
+      <div class="card">
+        <h2>5. 邮箱查找 Email Finder</h2>
+        <p style="color:#888;font-size:13px;margin:0 0 12px">三种方式任选：① LinkedIn 地址（无需姓名）；② 域名/公司名 + 姓名；③ 域名/公司名 + Full Name</p>
+        <div class="form-grid">
+          <div class="form-group" style="grid-column:1/-1">
+            <label>LinkedIn 地址（填此项可不填姓名）</label>
+            <input type="text" id="ef-linkedin" placeholder="例如：https://linkedin.com/in/johndoe 或 johndoe" />
+          </div>
+          <div class="form-group">
+            <label>公司域名</label>
+            <input type="text" id="ef-domain" placeholder="例如：google.com" />
+          </div>
+          <div class="form-group">
+            <label>公司名称</label>
+            <input type="text" id="ef-company" placeholder="例如：Google" />
+          </div>
+          <div class="form-group">
+            <label>First Name</label>
+            <input type="text" id="ef-first" placeholder="例如：John" />
+          </div>
+          <div class="form-group">
+            <label>Last Name</label>
+            <input type="text" id="ef-last" placeholder="例如：Doe" />
+          </div>
+          <div class="form-group">
+            <label>Full Name（可替代 First+Last）</label>
+            <input type="text" id="ef-fullname" placeholder="例如：John Doe" />
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-hunter" id="ef-btn" onclick="emailFinderSearch()">查找邮箱</button>
+          <div class="spinner" id="ef-spinner"></div>
+          <span class="status-text" id="ef-status"></span>
+        </div>
+      </div>
+      <div class="error-box" id="ef-error"></div>
+      <div class="results-area" id="ef-results">
+        <div class="card"><h2>查找结果</h2><div id="ef-resultArea"></div></div>
+      </div>
+
+      <!-- 6. 邮箱验证 -->
+      <div class="card">
+        <h2>6. 邮箱验证 Email Verifier</h2>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>邮箱地址</label>
+            <input type="text" id="ev-email" placeholder="例如：john@google.com" />
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-hunter" id="ev-btn" onclick="emailVerifierSearch()">验证邮箱</button>
+          <div class="spinner" id="ev-spinner"></div>
+          <span class="status-text" id="ev-status"></span>
+        </div>
+      </div>
+      <div class="error-box" id="ev-error"></div>
+      <div class="results-area" id="ev-results">
+        <div class="card"><h2>验证结果</h2><div id="ev-resultArea"></div></div>
+      </div>
+
+      <!-- 7. 人员信息补全 -->
+      <div class="card">
+        <h2>7. 人员信息补全 Email Enrichment</h2>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>邮箱地址</label>
+            <input type="text" id="ee-email" placeholder="例如：matt@hunter.io" />
+          </div>
+          <div class="form-group">
+            <label>LinkedIn（可选，优先）</label>
+            <input type="text" id="ee-linkedin" placeholder="例如：matttharp" />
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-hunter" id="ee-btn" onclick="emailEnrichSearch()">查询人员</button>
+          <div class="spinner" id="ee-spinner"></div>
+          <span class="status-text" id="ee-status"></span>
+        </div>
+      </div>
+      <div class="error-box" id="ee-error"></div>
+      <div class="results-area" id="ee-results">
+        <div class="card"><h2>人员信息</h2><div id="ee-resultArea"></div></div>
+      </div>
+
+      <!-- 8. 公司信息补全 -->
+      <div class="card">
+        <h2>8. 公司信息补全 Company Enrichment</h2>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>公司域名</label>
+            <input type="text" id="ce-domain" placeholder="例如：hunter.io" />
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-hunter" id="ce-btn" onclick="companyEnrichSearch()">查询公司</button>
+          <div class="spinner" id="ce-spinner"></div>
+          <span class="status-text" id="ce-status"></span>
+        </div>
+      </div>
+      <div class="error-box" id="ce-error"></div>
+      <div class="results-area" id="ce-results">
+        <div class="card"><h2>公司信息</h2><div id="ce-resultArea"></div></div>
+      </div>
+
+      <!-- 9. 联合补全 -->
+      <div class="card">
+        <h2>9. 联合补全 Combined Enrichment</h2>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>邮箱地址</label>
+            <input type="text" id="cb-email" placeholder="例如：matt@hunter.io" />
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-hunter" id="cb-btn" onclick="combinedEnrichSearch()">联合查询</button>
+          <div class="spinner" id="cb-spinner"></div>
+          <span class="status-text" id="cb-status"></span>
+        </div>
+      </div>
+      <div class="error-box" id="cb-error"></div>
+      <div class="results-area" id="cb-results">
+        <div class="card"><h2>人员 + 公司信息</h2><div id="cb-resultArea"></div></div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    /* ==================== Tab 切换 ==================== */
+    function switchTab(name) {
+      document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+      document.querySelectorAll(".tab-btn").forEach(b => {
+        b.classList.remove("active", "active-hunter");
+      });
+      document.getElementById("panel-" + name).classList.add("active");
+      const btns = document.querySelectorAll(".tab-btn");
+      if (name === "apollo") { btns[0].classList.add("active"); }
+      else { btns[1].classList.add("active-hunter"); }
+    }
+
+    /* ==================== Apollo 查询 ==================== */
+    async function apolloSearch() {
+      const domain = document.getElementById("ap-domain").value.trim();
+      const companyName = document.getElementById("ap-companyName").value.trim();
+      const btn = document.getElementById("ap-btn");
+      const spinner = document.getElementById("ap-spinner");
+      const statusText = document.getElementById("ap-status");
+      const errorBox = document.getElementById("ap-error");
+      const resultsDiv = document.getElementById("ap-results");
+
+      if (!domain && !companyName) {
+        showError(errorBox, "请至少输入公司域名或公司名称");
+        return;
+      }
+
+      resetUI(errorBox, resultsDiv, btn, spinner, statusText);
+
+      try {
+        const response = await fetch("/enrich-company", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            domain: domain || undefined,
+            company_name: companyName || undefined,
+          }),
+        });
+
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error(err.detail || err.error || `请求失败 (${response.status})`);
+        }
+
+        const data = await response.json();
+        renderApolloResults(data, resultsDiv);
+      } catch (err) {
+        showError(errorBox, err.message);
+      } finally {
+        doneUI(btn, spinner, statusText);
+      }
+    }
+
+    function renderApolloResults(data, resultsDiv) {
+      const companyGrid = document.getElementById("ap-companyGrid");
+      const contactsArea = document.getElementById("ap-contactsArea");
+
+      if (data.company) {
+        const c = data.company;
+        companyGrid.innerHTML = `
+          <div class="info-item"><div class="label">公司名称</div><div class="value">${esc(c.name || "-")}</div></div>
+          <div class="info-item"><div class="label">行业</div><div class="value">${esc(c.industry || "-")}</div></div>
+          <div class="info-item"><div class="label">员工数</div><div class="value">${c.employee_count || "-"}</div></div>
+          <div class="info-item"><div class="label">官网</div><div class="value">${c.website ? `<a href="${esc(c.website)}" target="_blank">${esc(c.website)}</a>` : "-"}</div></div>
+        `;
+      } else {
+        companyGrid.innerHTML = `<div class="empty-state">未找到公司信息</div>`;
+      }
+
+      let messageHtml = data.message ? `<div class="message-box">${esc(data.message)}</div>` : "";
+
+      if (data.contacts && data.contacts.length > 0) {
+        let rows = data.contacts.map(c => `
+          <tr>
+            <td>${esc(c.name || "-")}</td>
+            <td>${esc(c.title || "-")}</td>
+            <td>${c.email ? `<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>` : "-"}</td>
+            <td>${c.linkedin ? `<a href="${esc(c.linkedin)}" target="_blank">查看</a>` : "-"}</td>
+          </tr>
+        `).join("");
+        contactsArea.innerHTML = `${messageHtml}<div class="table-wrap"><table>
+          <thead><tr><th>姓名</th><th>职位</th><th>邮箱</th><th>LinkedIn</th></tr></thead>
+          <tbody>${rows}</tbody></table></div>`;
+      } else {
+        contactsArea.innerHTML = `${messageHtml}<div class="empty-state">未找到符合条件的联系人</div>`;
+      }
+
+      resultsDiv.classList.add("show");
+    }
+
+    /* ==================== Hunter 查询 ==================== */
+    async function hunterSearch() {
+      const domain = document.getElementById("ht-domain").value.trim();
+      const btn = document.getElementById("ht-btn");
+      const spinner = document.getElementById("ht-spinner");
+      const statusText = document.getElementById("ht-status");
+      const errorBox = document.getElementById("ht-error");
+      const resultsDiv = document.getElementById("ht-results");
+
+      if (!domain) {
+        showError(errorBox, "请输入公司域名");
+        return;
+      }
+
+      resetUI(errorBox, resultsDiv, btn, spinner, statusText);
+
+      try {
+        const response = await fetch("/hunter-domain-search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ domain }),
+        });
+
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error(err.detail || err.error || `请求失败 (${response.status})`);
+        }
+
+        const data = await response.json();
+        renderHunterResults(data, resultsDiv);
+      } catch (err) {
+        showError(errorBox, err.message);
+      } finally {
+        doneUI(btn, spinner, statusText);
+      }
+    }
+
+    function renderHunterResults(data, resultsDiv) {
+      const area = document.getElementById("ht-emailsArea");
+      let messageHtml = data.message ? `<div class="message-box">${esc(data.message)}</div>` : "";
+
+      if (data.emails && data.emails.length > 0) {
+        let rows = data.emails.map(e => {
+          const conf = Number(e.confidence) || 0;
+          const cls = conf >= 80 ? "badge-high" : conf >= 50 ? "badge-mid" : "badge-low";
+          return `<tr>
+            <td>${e.value ? `<a href="mailto:${esc(e.value)}">${esc(e.value)}</a>` : "-"}</td>
+            <td>${esc(e.first_name || "-")}</td>
+            <td>${esc(e.last_name || "-")}</td>
+            <td>${esc(e.position || "-")}</td>
+            <td><span class="badge ${cls}">${conf}%</span></td>
+          </tr>`;
+        }).join("");
+
+        area.innerHTML = `${messageHtml}<div class="table-wrap"><table>
+          <thead><tr><th>邮箱</th><th>名</th><th>姓</th><th>职位</th><th>置信度</th></tr></thead>
+          <tbody>${rows}</tbody></table></div>`;
+      } else {
+        area.innerHTML = `${messageHtml}<div class="empty-state">未找到该域名的邮箱信息</div>`;
+      }
+
+      resultsDiv.classList.add("show");
+    }
+
+    /* ==================== Email Finder ==================== */
+    async function emailFinderSearch() {
+      const linkedinUrl = document.getElementById("ef-linkedin").value.trim();
+      const domain = document.getElementById("ef-domain").value.trim();
+      const company = document.getElementById("ef-company").value.trim();
+      const firstName = document.getElementById("ef-first").value.trim();
+      const lastName = document.getElementById("ef-last").value.trim();
+      const fullName = document.getElementById("ef-fullname").value.trim();
+      const btn = document.getElementById("ef-btn");
+      const spinner = document.getElementById("ef-spinner");
+      const statusText = document.getElementById("ef-status");
+      const errorBox = document.getElementById("ef-error");
+      const resultsDiv = document.getElementById("ef-results");
+
+      // 校验：至少有 domain / company / linkedin_url
+      if (!domain && !company && !linkedinUrl) {
+        showError(errorBox, "请至少填写 LinkedIn 地址、公司域名 或 公司名称");
+        return;
+      }
+      // 如果没填 linkedin，则需要姓名
+      if (!linkedinUrl && !firstName && !lastName && !fullName) {
+        showError(errorBox, "非 LinkedIn 查找时，请填写 First+Last Name 或 Full Name");
+        return;
+      }
+
+      resetUI(errorBox, resultsDiv, btn, spinner, statusText);
+
+      try {
+        const body = {};
+        if (linkedinUrl) body.linkedin_url = linkedinUrl;
+        if (domain) body.domain = domain;
+        if (company) body.company = company;
+        if (firstName) body.first_name = firstName;
+        if (lastName) body.last_name = lastName;
+        if (fullName) body.full_name = fullName;
+
+        const response = await fetch("/hunter-email-finder", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error(err.detail || err.error || `请求失败 (${response.status})`);
+        }
+
+        const data = await response.json();
+        renderEmailFinderResult(data, resultsDiv);
+      } catch (err) {
+        showError(errorBox, err.message);
+      } finally {
+        doneUI(btn, spinner, statusText);
+      }
+    }
+
+    function renderEmailFinderResult(data, resultsDiv) {
+      const area = document.getElementById("ef-resultArea");
+      let messageHtml = data.message ? `<div class="message-box">${esc(data.message)}</div>` : "";
+
+      if (data.email) {
+        const conf = Number(data.confidence) || 0;
+        const cls = conf >= 80 ? "badge-high" : conf >= 50 ? "badge-mid" : "badge-low";
+        const nameStr = [data.first_name, data.last_name].filter(Boolean).join(" ") || "-";
+        const linkUrl = data.linkedin_url || "";
+        const isFullUrl = linkUrl.startsWith("http");
+        const linkedinHref = isFullUrl ? linkUrl : (linkUrl ? `https://linkedin.com/in/${linkUrl}` : "");
+
+        let verifyHtml = "";
+        if (data.verification && data.verification.status) {
+          const vMap = { valid: ["badge-high","有效"], accept_all: ["badge-mid","Accept All"], unknown: ["badge-mid","未知"] };
+          const [vc, vl] = vMap[data.verification.status] || ["badge-mid", data.verification.status];
+          verifyHtml = `<div class="info-item"><div class="label">验证状态</div><div class="value"><span class="badge ${vc}">${vl}</span></div></div>`;
+        }
+
+        area.innerHTML = `${messageHtml}
+          <div class="company-grid">
+            <div class="info-item"><div class="label">姓名</div><div class="value">${esc(nameStr)}</div></div>
+            <div class="info-item"><div class="label">邮箱</div><div class="value"><a href="mailto:${esc(data.email)}">${esc(data.email)}</a></div></div>
+            <div class="info-item"><div class="label">置信度</div><div class="value"><span class="badge ${cls}">${conf}%</span></div></div>
+            <div class="info-item"><div class="label">职位</div><div class="value">${esc(data.position || "-")}</div></div>
+            ${data.domain ? `<div class="info-item"><div class="label">域名</div><div class="value">${esc(data.domain)}</div></div>` : ""}
+            ${data.company ? `<div class="info-item"><div class="label">公司</div><div class="value">${esc(data.company)}</div></div>` : ""}
+            ${linkedinHref ? `<div class="info-item"><div class="label">LinkedIn</div><div class="value"><a href="${esc(linkedinHref)}" target="_blank">查看</a></div></div>` : ""}
+            ${verifyHtml}
+          </div>`;
+      } else {
+        area.innerHTML = `${messageHtml}<div class="empty-state">未找到该联系人的邮箱</div>`;
+      }
+
+      resultsDiv.classList.add("show");
+    }
+
+    /* ==================== Email Verifier ==================== */
+    async function emailVerifierSearch() {
+      const email = document.getElementById("ev-email").value.trim();
+      const btn = document.getElementById("ev-btn");
+      const spinner = document.getElementById("ev-spinner");
+      const statusText = document.getElementById("ev-status");
+      const errorBox = document.getElementById("ev-error");
+      const resultsDiv = document.getElementById("ev-results");
+
+      if (!email) {
+        showError(errorBox, "请输入邮箱地址");
+        return;
+      }
+
+      resetUI(errorBox, resultsDiv, btn, spinner, statusText);
+
+      try {
+        const response = await fetch("/hunter-email-verifier", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        });
+
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error(err.detail || err.error || `请求失败 (${response.status})`);
+        }
+
+        const data = await response.json();
+        renderEmailVerifierResult(data, resultsDiv);
+      } catch (err) {
+        showError(errorBox, err.message);
+      } finally {
+        doneUI(btn, spinner, statusText);
+      }
+    }
+
+    function renderEmailVerifierResult(data, resultsDiv) {
+      const area = document.getElementById("ev-resultArea");
+      let messageHtml = data.message ? `<div class="message-box">${esc(data.message)}</div>` : "";
+
+      if (data.result === null) {
+        area.innerHTML = `${messageHtml}<div class="empty-state">验证失败，未获取到结果</div>`;
+      } else {
+        const statusMap = {
+          valid: ["badge-high", "有效"],
+          invalid: ["badge-low", "无效"],
+          accept_all: ["badge-mid", "Accept All"],
+          webmail: ["badge-mid", "Webmail"],
+          disposable: ["badge-low", "一次性邮箱"],
+          unknown: ["badge-mid", "未知"],
+        };
+        const [cls, label] = statusMap[data.status] || ["badge-mid", data.status];
+
+        const boolIcon = v => v === true ? "✅" : v === false ? "❌" : "-";
+
+        area.innerHTML = `${messageHtml}
+          <div class="company-grid">
+            <div class="info-item"><div class="label">邮箱</div><div class="value">${esc(data.email)}</div></div>
+            <div class="info-item"><div class="label">状态</div><div class="value"><span class="badge ${cls}">${label}</span></div></div>
+            <div class="info-item"><div class="label">评分</div><div class="value">${data.score ?? "-"}</div></div>
+            <div class="info-item"><div class="label">格式正确</div><div class="value">${boolIcon(data.regexp)}</div></div>
+            <div class="info-item"><div class="label">MX 记录</div><div class="value">${boolIcon(data.mx_records)}</div></div>
+            <div class="info-item"><div class="label">SMTP 服务器</div><div class="value">${boolIcon(data.smtp_server)}</div></div>
+            <div class="info-item"><div class="label">SMTP 检查</div><div class="value">${boolIcon(data.smtp_check)}</div></div>
+            <div class="info-item"><div class="label">Accept All</div><div class="value">${boolIcon(data.accept_all)}</div></div>
+            <div class="info-item"><div class="label">一次性邮箱</div><div class="value">${boolIcon(data.disposable)}</div></div>
+            <div class="info-item"><div class="label">Webmail</div><div class="value">${boolIcon(data.webmail)}</div></div>
+            <div class="info-item"><div class="label">乱码检测</div><div class="value">${boolIcon(data.gibberish)}</div></div>
+            <div class="info-item"><div class="label">被屏蔽</div><div class="value">${boolIcon(data.block)}</div></div>
+          </div>`;
+      }
+
+      resultsDiv.classList.add("show");
+    }
+
+    /* ==================== 1. 账户信息 ==================== */
+    async function accountInfoSearch() {
+      const btn = document.getElementById("ac-btn");
+      const spinner = document.getElementById("ac-spinner");
+      const statusText = document.getElementById("ac-status");
+      const errorBox = document.getElementById("ac-error");
+      const resultsDiv = document.getElementById("ac-results");
+
+      resetUI(errorBox, resultsDiv, btn, spinner, statusText);
+
+      try {
+        const response = await fetch("/hunter-account");
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error(err.detail || err.error || `请求失败 (${response.status})`);
+        }
+        const data = await response.json();
+        const area = document.getElementById("ac-resultArea");
+        const a = data.account;
+        if (!a) {
+          area.innerHTML = `<div class="empty-state">无法获取账户信息</div>`;
+        } else {
+          const r = a.requests;
+          area.innerHTML = `<div class="company-grid">
+            <div class="info-item"><div class="label">账户</div><div class="value">${esc(a.first_name)} ${esc(a.last_name)}</div></div>
+            <div class="info-item"><div class="label">邮箱</div><div class="value">${esc(a.email)}</div></div>
+            <div class="info-item"><div class="label">套餐</div><div class="value">${esc(a.plan_name)}</div></div>
+            <div class="info-item"><div class="label">重置日期</div><div class="value">${esc(a.reset_date)}</div></div>
+            <div class="info-item"><div class="label">搜索已用 / 总量</div><div class="value">${r.searches_used} / ${r.searches_available}</div></div>
+            <div class="info-item"><div class="label">验证已用 / 总量</div><div class="value">${r.verifications_used} / ${r.verifications_available}</div></div>
+          </div>`;
+        }
+        resultsDiv.classList.add("show");
+      } catch (err) {
+        showError(errorBox, err.message);
+      } finally {
+        doneUI(btn, spinner, statusText);
+      }
+    }
+
+    /* ==================== 2. 公司发现 ==================== */
+    async function discoverSearch() {
+      const query = document.getElementById("dc-query").value.trim();
+      const btn = document.getElementById("dc-btn");
+      const spinner = document.getElementById("dc-spinner");
+      const statusText = document.getElementById("dc-status");
+      const errorBox = document.getElementById("dc-error");
+      const resultsDiv = document.getElementById("dc-results");
+
+      if (!query) { showError(errorBox, "请输入查询条件"); return; }
+
+      resetUI(errorBox, resultsDiv, btn, spinner, statusText);
+
+      try {
+        const response = await fetch("/hunter-discover", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query }),
+        });
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error(err.detail || err.error || `请求失败 (${response.status})`);
+        }
+        const data = await response.json();
+        const area = document.getElementById("dc-resultArea");
+        let msg = data.message ? `<div class="message-box">${esc(data.message)}</div>` : "";
+
+        if (data.companies && data.companies.length > 0) {
+          let rows = data.companies.map(c => `<tr>
+            <td>${esc(c.name || "-")}</td>
+            <td>${esc(c.domain || "-")}</td>
+            <td>${esc(c.industry || "-")}</td>
+            <td>${esc(c.employees || "-")}</td>
+            <td>${esc(c.location || "-")}</td>
+          </tr>`).join("");
+          area.innerHTML = `${msg}<p style="margin-bottom:12px;color:#888;font-size:13px">共找到 ${data.total} 家公司</p>
+            <div class="table-wrap"><table>
+            <thead><tr><th>公司</th><th>域名</th><th>行业</th><th>规模</th><th>地点</th></tr></thead>
+            <tbody>${rows}</tbody></table></div>`;
+        } else {
+          area.innerHTML = `${msg}<div class="empty-state">未找到符合条件的公司</div>`;
+        }
+        resultsDiv.classList.add("show");
+      } catch (err) {
+        showError(errorBox, err.message);
+      } finally {
+        doneUI(btn, spinner, statusText);
+      }
+    }
+
+    /* ==================== 3. 邮箱数量 ==================== */
+    async function emailCountSearch() {
+      const domain = document.getElementById("ec-domain").value.trim();
+      const btn = document.getElementById("ec-btn");
+      const spinner = document.getElementById("ec-spinner");
+      const statusText = document.getElementById("ec-status");
+      const errorBox = document.getElementById("ec-error");
+      const resultsDiv = document.getElementById("ec-results");
+
+      if (!domain) { showError(errorBox, "请输入公司域名"); return; }
+
+      resetUI(errorBox, resultsDiv, btn, spinner, statusText);
+
+      try {
+        const response = await fetch("/hunter-email-count", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ domain }),
+        });
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error(err.detail || err.error || `请求失败 (${response.status})`);
+        }
+        const data = await response.json();
+        const area = document.getElementById("ec-resultArea");
+
+        // 部门分布
+        let deptHtml = "";
+        if (data.department && Object.keys(data.department).length > 0) {
+          let deptRows = Object.entries(data.department).map(([k, v]) =>
+            `<tr><td>${esc(k)}</td><td>${v}</td></tr>`
+          ).join("");
+          deptHtml = `<h3 style="margin:16px 0 8px;font-size:14px;color:#555">按部门</h3>
+            <div class="table-wrap"><table><thead><tr><th>部门</th><th>数量</th></tr></thead>
+            <tbody>${deptRows}</tbody></table></div>`;
+        }
+
+        // 职级分布
+        let senHtml = "";
+        if (data.seniority && Object.keys(data.seniority).length > 0) {
+          let senRows = Object.entries(data.seniority).map(([k, v]) =>
+            `<tr><td>${esc(k)}</td><td>${v}</td></tr>`
+          ).join("");
+          senHtml = `<h3 style="margin:16px 0 8px;font-size:14px;color:#555">按职级</h3>
+            <div class="table-wrap"><table><thead><tr><th>职级</th><th>数量</th></tr></thead>
+            <tbody>${senRows}</tbody></table></div>`;
+        }
+
+        area.innerHTML = `<div class="company-grid">
+          <div class="info-item"><div class="label">总邮箱数</div><div class="value">${data.total}</div></div>
+          <div class="info-item"><div class="label">个人邮箱</div><div class="value">${data.personal_emails}</div></div>
+          <div class="info-item"><div class="label">通用邮箱</div><div class="value">${data.generic_emails}</div></div>
+        </div>${deptHtml}${senHtml}`;
+        resultsDiv.classList.add("show");
+      } catch (err) {
+        showError(errorBox, err.message);
+      } finally {
+        doneUI(btn, spinner, statusText);
+      }
+    }
+
+    /* ==================== 7. 人员信息补全 ==================== */
+    async function emailEnrichSearch() {
+      const email = document.getElementById("ee-email").value.trim();
+      const linkedin = document.getElementById("ee-linkedin").value.trim();
+      const btn = document.getElementById("ee-btn");
+      const spinner = document.getElementById("ee-spinner");
+      const statusText = document.getElementById("ee-status");
+      const errorBox = document.getElementById("ee-error");
+      const resultsDiv = document.getElementById("ee-results");
+
+      if (!email && !linkedin) { showError(errorBox, "请输入邮箱或 LinkedIn"); return; }
+
+      resetUI(errorBox, resultsDiv, btn, spinner, statusText);
+
+      try {
+        const response = await fetch("/hunter-email-enrichment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email || undefined, linkedin: linkedin || undefined }),
+        });
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error(err.detail || err.error || `请求失败 (${response.status})`);
+        }
+        const data = await response.json();
+        const area = document.getElementById("ee-resultArea");
+        let msg = data.message ? `<div class="message-box">${esc(data.message)}</div>` : "";
+
+        if (data.person) {
+          const p = data.person;
+          const link = (url, text) => url ? `<a href="${esc(url)}" target="_blank">${text || esc(url)}</a>` : "-";
+          area.innerHTML = `${msg}<div class="company-grid">
+            <div class="info-item"><div class="label">姓名</div><div class="value">${esc(p.full_name || "-")}</div></div>
+            <div class="info-item"><div class="label">邮箱</div><div class="value">${p.email ? `<a href="mailto:${esc(p.email)}">${esc(p.email)}</a>` : "-"}</div></div>
+            <div class="info-item"><div class="label">职位</div><div class="value">${esc(p.employment?.title || "-")}</div></div>
+            <div class="info-item"><div class="label">公司</div><div class="value">${esc(p.employment?.company || "-")}</div></div>
+            <div class="info-item"><div class="label">职级</div><div class="value">${esc(p.employment?.seniority || "-")}</div></div>
+            <div class="info-item"><div class="label">位置</div><div class="value">${esc(p.location || "-")}</div></div>
+            <div class="info-item"><div class="label">电话</div><div class="value">${esc(p.phone || "-")}</div></div>
+            <div class="info-item"><div class="label">LinkedIn</div><div class="value">${link(p.social?.linkedin, "查看")}</div></div>
+            <div class="info-item"><div class="label">Twitter</div><div class="value">${link(p.social?.twitter, "查看")}</div></div>
+            <div class="info-item"><div class="label">GitHub</div><div class="value">${link(p.social?.github, "查看")}</div></div>
+          </div>`;
+        } else {
+          area.innerHTML = `${msg}<div class="empty-state">未找到该人员的信息</div>`;
+        }
+        resultsDiv.classList.add("show");
+      } catch (err) {
+        showError(errorBox, err.message);
+      } finally {
+        doneUI(btn, spinner, statusText);
+      }
+    }
+
+    /* ==================== 8. 公司信息补全 ==================== */
+    async function companyEnrichSearch() {
+      const domain = document.getElementById("ce-domain").value.trim();
+      const btn = document.getElementById("ce-btn");
+      const spinner = document.getElementById("ce-spinner");
+      const statusText = document.getElementById("ce-status");
+      const errorBox = document.getElementById("ce-error");
+      const resultsDiv = document.getElementById("ce-results");
+
+      if (!domain) { showError(errorBox, "请输入公司域名"); return; }
+
+      resetUI(errorBox, resultsDiv, btn, spinner, statusText);
+
+      try {
+        const response = await fetch("/hunter-company-enrichment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ domain }),
+        });
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error(err.detail || err.error || `请求失败 (${response.status})`);
+        }
+        const data = await response.json();
+        const area = document.getElementById("ce-resultArea");
+        let msg = data.message ? `<div class="message-box">${esc(data.message)}</div>` : "";
+
+        if (data.company) {
+          const c = data.company;
+          const link = (url, text) => url ? `<a href="${esc(url)}" target="_blank">${text || esc(url)}</a>` : "-";
+          let techHtml = c.tech && c.tech.length > 0
+            ? c.tech.map(t => `<span class="badge badge-mid" style="margin:2px">${esc(t)}</span>`).join(" ")
+            : "-";
+          let tagsHtml = c.tags && c.tags.length > 0
+            ? c.tags.map(t => `<span class="badge badge-high" style="margin:2px">${esc(t)}</span>`).join(" ")
+            : "-";
+
+          area.innerHTML = `${msg}<div class="company-grid">
+            <div class="info-item"><div class="label">公司名称</div><div class="value">${esc(c.name || "-")}</div></div>
+            <div class="info-item"><div class="label">法定名称</div><div class="value">${esc(c.legal_name || "-")}</div></div>
+            <div class="info-item"><div class="label">域名</div><div class="value">${esc(c.domain || "-")}</div></div>
+            <div class="info-item"><div class="label">行业</div><div class="value">${esc(c.industry || "-")}</div></div>
+            <div class="info-item"><div class="label">领域</div><div class="value">${esc(c.sector || "-")}</div></div>
+            <div class="info-item"><div class="label">类型</div><div class="value">${esc(c.type || "-")}</div></div>
+            <div class="info-item"><div class="label">员工规模</div><div class="value">${esc(c.employees || "-")}</div></div>
+            <div class="info-item"><div class="label">成立年份</div><div class="value">${c.founded_year || "-"}</div></div>
+            <div class="info-item"><div class="label">位置</div><div class="value">${esc(c.location || "-")}</div></div>
+            <div class="info-item"><div class="label">电话</div><div class="value">${esc(c.phone || "-")}</div></div>
+            <div class="info-item"><div class="label">流量等级</div><div class="value">${esc(c.traffic_rank || "-")}</div></div>
+            <div class="info-item"><div class="label">LinkedIn</div><div class="value">${link(c.social?.linkedin, "查看")}</div></div>
+            <div class="info-item" style="grid-column:1/-1"><div class="label">简介</div><div class="value">${esc(c.description || "-")}</div></div>
+            <div class="info-item" style="grid-column:1/-1"><div class="label">标签</div><div class="value">${tagsHtml}</div></div>
+            <div class="info-item" style="grid-column:1/-1"><div class="label">技术栈</div><div class="value">${techHtml}</div></div>
+          </div>`;
+        } else {
+          area.innerHTML = `${msg}<div class="empty-state">未找到该公司的信息</div>`;
+        }
+        resultsDiv.classList.add("show");
+      } catch (err) {
+        showError(errorBox, err.message);
+      } finally {
+        doneUI(btn, spinner, statusText);
+      }
+    }
+
+    /* ==================== 9. 联合补全 ==================== */
+    async function combinedEnrichSearch() {
+      const email = document.getElementById("cb-email").value.trim();
+      const btn = document.getElementById("cb-btn");
+      const spinner = document.getElementById("cb-spinner");
+      const statusText = document.getElementById("cb-status");
+      const errorBox = document.getElementById("cb-error");
+      const resultsDiv = document.getElementById("cb-results");
+
+      if (!email) { showError(errorBox, "请输入邮箱地址"); return; }
+
+      resetUI(errorBox, resultsDiv, btn, spinner, statusText);
+
+      try {
+        const response = await fetch("/hunter-combined-enrichment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        });
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error(err.detail || err.error || `请求失败 (${response.status})`);
+        }
+        const data = await response.json();
+        const area = document.getElementById("cb-resultArea");
+        let msg = data.message ? `<div class="message-box">${esc(data.message)}</div>` : "";
+        const link = (url, text) => url ? `<a href="${esc(url)}" target="_blank">${text || esc(url)}</a>` : "-";
+
+        let personHtml = "";
+        if (data.person) {
+          const p = data.person;
+          personHtml = `<h3 style="margin:0 0 12px;font-size:15px;color:#333">人员信息</h3>
+            <div class="company-grid" style="margin-bottom:20px">
+              <div class="info-item"><div class="label">姓名</div><div class="value">${esc(p.full_name || "-")}</div></div>
+              <div class="info-item"><div class="label">邮箱</div><div class="value">${p.email ? `<a href="mailto:${esc(p.email)}">${esc(p.email)}</a>` : "-"}</div></div>
+              <div class="info-item"><div class="label">职位</div><div class="value">${esc(p.title || "-")}</div></div>
+              <div class="info-item"><div class="label">职级</div><div class="value">${esc(p.seniority || "-")}</div></div>
+              <div class="info-item"><div class="label">位置</div><div class="value">${esc(p.location || "-")}</div></div>
+              <div class="info-item"><div class="label">LinkedIn</div><div class="value">${link(p.linkedin, "查看")}</div></div>
+            </div>`;
+        }
+
+        let companyHtml = "";
+        if (data.company) {
+          const c = data.company;
+          companyHtml = `<h3 style="margin:0 0 12px;font-size:15px;color:#333">公司信息</h3>
+            <div class="company-grid">
+              <div class="info-item"><div class="label">公司</div><div class="value">${esc(c.name || "-")}</div></div>
+              <div class="info-item"><div class="label">域名</div><div class="value">${esc(c.domain || "-")}</div></div>
+              <div class="info-item"><div class="label">行业</div><div class="value">${esc(c.industry || "-")}</div></div>
+              <div class="info-item"><div class="label">员工规模</div><div class="value">${esc(c.employees || "-")}</div></div>
+              <div class="info-item"><div class="label">位置</div><div class="value">${esc(c.location || "-")}</div></div>
+              <div class="info-item"><div class="label">LinkedIn</div><div class="value">${link(c.linkedin, "查看")}</div></div>
+              <div class="info-item" style="grid-column:1/-1"><div class="label">简介</div><div class="value">${esc(c.description || "-")}</div></div>
+            </div>`;
+        }
+
+        if (!data.person && !data.company) {
+          area.innerHTML = `${msg}<div class="empty-state">未找到相关信息</div>`;
+        } else {
+          area.innerHTML = `${msg}${personHtml}${companyHtml}`;
+        }
+        resultsDiv.classList.add("show");
+      } catch (err) {
+        showError(errorBox, err.message);
+      } finally {
+        doneUI(btn, spinner, statusText);
+      }
+    }
+
+    /* ==================== 工具函数 ==================== */
+    function showError(box, msg) {
+      box.textContent = msg;
+      box.classList.add("show");
+    }
+    function resetUI(errorBox, resultsDiv, btn, spinner, statusText) {
+      errorBox.classList.remove("show");
+      resultsDiv.classList.remove("show");
+      btn.disabled = true;
+      spinner.classList.add("show");
+      statusText.textContent = "正在查询，请稍候...";
+    }
+    function doneUI(btn, spinner, statusText) {
+      btn.disabled = false;
+      spinner.classList.remove("show");
+      statusText.textContent = "";
+    }
+    function esc(str) {
+      const div = document.createElement("div");
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    // 回车触发搜索
+    document.getElementById("ap-domain").addEventListener("keydown", e => { if (e.key === "Enter") apolloSearch(); });
+    document.getElementById("ap-companyName").addEventListener("keydown", e => { if (e.key === "Enter") apolloSearch(); });
+    document.getElementById("dc-query").addEventListener("keydown", e => { if (e.key === "Enter") discoverSearch(); });
+    document.getElementById("ec-domain").addEventListener("keydown", e => { if (e.key === "Enter") emailCountSearch(); });
+    document.getElementById("ht-domain").addEventListener("keydown", e => { if (e.key === "Enter") hunterSearch(); });
+    document.getElementById("ef-linkedin").addEventListener("keydown", e => { if (e.key === "Enter") emailFinderSearch(); });
+    document.getElementById("ef-domain").addEventListener("keydown", e => { if (e.key === "Enter") emailFinderSearch(); });
+    document.getElementById("ef-company").addEventListener("keydown", e => { if (e.key === "Enter") emailFinderSearch(); });
+    document.getElementById("ef-first").addEventListener("keydown", e => { if (e.key === "Enter") emailFinderSearch(); });
+    document.getElementById("ef-last").addEventListener("keydown", e => { if (e.key === "Enter") emailFinderSearch(); });
+    document.getElementById("ef-fullname").addEventListener("keydown", e => { if (e.key === "Enter") emailFinderSearch(); });
+    document.getElementById("ev-email").addEventListener("keydown", e => { if (e.key === "Enter") emailVerifierSearch(); });
+    document.getElementById("ee-email").addEventListener("keydown", e => { if (e.key === "Enter") emailEnrichSearch(); });
+    document.getElementById("ee-linkedin").addEventListener("keydown", e => { if (e.key === "Enter") emailEnrichSearch(); });
+    document.getElementById("ce-domain").addEventListener("keydown", e => { if (e.key === "Enter") companyEnrichSearch(); });
+    document.getElementById("cb-email").addEventListener("keydown", e => { if (e.key === "Enter") combinedEnrichSearch(); });
+  </script>
+</body>
+</html>

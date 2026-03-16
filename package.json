@@ -1,0 +1,14 @@
+{
+  "name": "apollo-enrich-demo",
+  "version": "1.0.0",
+  "description": "Demo service for enriching company and contact info via Apollo.io API",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "node --watch app.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "axios": "^1.6.7"
+  }
+}
