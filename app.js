@@ -12,6 +12,11 @@ app.use(express.json());
 // 托管前端静态文件
 app.use(express.static(path.join(__dirname, "public")));
 
+// 默认首页
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "app.html"));
+});
+
 // 注册路由 — Apollo
 app.use("/", enrichRoutes);
 
