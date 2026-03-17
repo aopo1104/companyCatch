@@ -3,7 +3,7 @@ const axios = require("axios");
 // ============================================================
 // Hunter.io API Key — 请在此处替换为你自己的 API Key
 // ============================================================
-const HUNTER_API_KEY = "43165bad7660d60fb5328ebdd57cd6592ccfcc7b";
+const HUNTER_API_KEY = "4789495244c367344a68e0fa50470451b260f452";
 
 // Hunter API 基础地址
 const HUNTER_BASE_URL = "https://api.hunter.io/v2";
